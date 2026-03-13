@@ -23,6 +23,10 @@ public:
     void  setDisplayOffset (float db) { displayOffsetDb = db; repaint(); }
     float getDisplayOffset()  const   { return displayOffsetDb; }
 
+    // Number of bars to draw in Bars mode (decimates the 200-pt grid).
+    void setBarResolution (int n) { barResolution = std::max (1, n); repaint(); }
+    int  getBarResolution()  const { return barResolution; }
+
     void paint   (juce::Graphics& g) override;
     void resized () override {}
 
@@ -50,8 +54,9 @@ private:
     std::vector<float> targetFreqs, targetDb;
     std::array<BandParams, MAX_BANDS> bands {};
 
-    DisplayMode displayMode    { DisplayMode::Line };
+    DisplayMode displayMode     { DisplayMode::Line };
     float       displayOffsetDb { 0.0f };
+    int         barResolution   { 200 };
 
     // Drag state
     int   dragBandIdx { -1 };

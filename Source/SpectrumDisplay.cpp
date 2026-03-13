@@ -212,8 +212,11 @@ void SpectrumDisplay::drawBars (juce::Graphics& g,
                                   float w, float h) const
 {
     const float bottomY = h;
+    const int   n       = (int) freqs.size();
+    // Stride so we draw approximately barResolution bars across the range
+    const int   stride  = std::max (1, n / std::max (1, barResolution));
 
-    for (size_t i = 0; i < freqs.size(); ++i)
+    for (int i = 0; i < n; i += stride)
     {
         if (freqs[i] < FFTAnalyzer::F_MIN || freqs[i] > FFTAnalyzer::F_MAX)
             continue;
@@ -221,10 +224,10 @@ void SpectrumDisplay::drawBars (juce::Graphics& g,
         const float x    = freqToX (freqs[i], w);
         const float topY = dbToY   (db[i],    h);
 
-        const float prevX = (i > 0)
-            ? freqToX (freqs[i - 1], w) : x - 2.0f;
-        const float nextX = (i + 1 < freqs.size())
-            ? freqToX (freqs[i + 1], w) : x + 2.0f;
+        const float prevX = (i >= stride)
+            ? freqToX (freqs[i - stride], w) : x - 2.0f;
+        const float nextX = (i + stride < n)
+            ? freqToX (freqs[i + stride], w) : x + 2.0f;
 
         const float halfLeft  = std::max ((x - prevX) * 0.5f, 0.5f);
         const float halfRight = std::max ((nextX - x) * 0.5f, 0.5f);

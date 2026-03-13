@@ -32,6 +32,20 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     addAndMakeVisible (btnFreeze);
     addAndMakeVisible (btnReset);
     addAndMakeVisible (btnDisplayMode);
+
+    cmbBarRes.addItem ("1/3 Oct",  1);
+    cmbBarRes.addItem ("1/6 Oct",  2);
+    cmbBarRes.addItem ("1/12 Oct", 3);
+    cmbBarRes.addItem ("Fine",     4);
+    cmbBarRes.setSelectedId (4, juce::dontSendNotification);  // Fine default
+    cmbBarRes.onChange = [this]
+    {
+        const int id = cmbBarRes.getSelectedId();
+        const int n  = (id == 1) ? 31 : (id == 2) ? 61 : (id == 3) ? 121 : 200;
+        spectrumDisplay.setBarResolution (n);
+    };
+    addAndMakeVisible (cmbBarRes);
+
     addAndMakeVisible (btnEditBands);
 
     // Threshold slider
@@ -182,8 +196,9 @@ void PaAutoEQEditor::resized()
     btnReset.setBounds  (x + 94, ctrlY + 42, 88, 26);
     x += 194;
 
-    btnDisplayMode.setBounds (x, ctrlY + 10, 80, 26);
-    btnEditBands  .setBounds (x, ctrlY + 42, 80, 26);
+    btnDisplayMode.setBounds (x, ctrlY + 10, 80, 22);
+    cmbBarRes     .setBounds (x, ctrlY + 34, 80, 20);
+    btnEditBands  .setBounds (x, ctrlY + 58, 80, 22);
     x += 88;
 
     lblCurve .setBounds (x, ctrlY + 8,  w - x - 8, 18);

@@ -72,6 +72,7 @@ private:
     juce::ToggleButton btnFreeze     { "Freeze EQ" };
     juce::TextButton   btnReset      { "Reset EQ" };
     juce::TextButton   btnDisplayMode{ "Bars" };   // toggles Line / Bars
+    juce::ComboBox     cmbBarRes;
     juce::TextButton   btnEditBands  { "Edit Bands" };
 
     juce::Slider  sliderThreshold, sliderSpeed;
