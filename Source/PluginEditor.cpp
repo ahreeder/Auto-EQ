@@ -1,7 +1,7 @@
 #include "PluginEditor.h"
 
-static constexpr int EDITOR_W = 920;
-static constexpr int EDITOR_H = 520;
+static constexpr int EDITOR_W = 960;
+static constexpr int EDITOR_H = 540;
 static constexpr int CTRL_H   = 90;
 
 PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
@@ -14,6 +14,16 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     // ── Spectrum display ─────────────────────────────────────────────────
     addAndMakeVisible (spectrumDisplay);
 
+    // Wire drag callback to processor
+    spectrumDisplay.onBandChanged = [this] (int idx, BandParams bp)
+    {
+        processor.updateBand (idx, bp);
+
+        // Also update the band editor if open
+        if (bandEditorWindow != nullptr && bandEditorWindow->isVisible())
+            bandEditorWindow->getPanel()->updateBands (processor.eqBank.getBands());
+    };
+
     // ── Controls ─────────────────────────────────────────────────────────
     addAndMakeVisible (btnEnabled);
     addAndMakeVisible (btnBypass);
@@ -21,6 +31,8 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     addAndMakeVisible (btnSave);
     addAndMakeVisible (btnFreeze);
     addAndMakeVisible (btnReset);
+    addAndMakeVisible (btnDisplayMode);
+    addAndMakeVisible (btnEditBands);
 
     // Threshold slider
     sliderThreshold.setSliderStyle (juce::Slider::RotaryVerticalDrag);
@@ -61,12 +73,13 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     addAndMakeVisible (lblStatus);
 
     // Button callbacks
-    btnLoad.onClick  = [this] { loadCurveClicked(); };
-    btnSave.onClick  = [this] { saveCurveClicked(); };
-    btnReset.onClick = [this] { resetClicked(); };
+    btnLoad.onClick        = [this] { loadCurveClicked(); };
+    btnSave.onClick        = [this] { saveCurveClicked(); };
+    btnReset.onClick       = [this] { resetClicked(); };
+    btnDisplayMode.onClick = [this] { toggleDisplayMode(); };
+    btnEditBands.onClick   = [this] { openBandEditor(); };
 
-    // Default curves dir: Python app's curves/ folder next to this DLL,
-    // falling back to Documents if it doesn't exist yet.
+    // Default curves dir
     juce::File defaultCurvesDir = juce::File::getSpecialLocation (
                                       juce::File::userDocumentsDirectory)
                                       .getChildFile ("pa-tuning-tool/curves");
@@ -88,30 +101,29 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     attMaxBands  = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
                        (processor.apvts, "maxBands",  sliderMaxBands);
 
-    startTimerHz (20);   // UI refresh at 20 fps
+    startTimerHz (20);
 }
 
 PaAutoEQEditor::~PaAutoEQEditor()
 {
     stopTimer();
+    bandEditorWindow.reset();
 }
 
 // ── Layout ────────────────────────────────────────────────────────────────
 
 void PaAutoEQEditor::resized()
 {
-    const int w    = getWidth();
-    const int h    = getHeight();
+    const int w     = getWidth();
+    const int h     = getHeight();
     const int ctrlY = h - CTRL_H;
 
     spectrumDisplay.setBounds (0, 0, w, ctrlY);
 
-    // Controls row
-    const int knobW  = 64;
-    const int knobH  = CTRL_H - 4;
+    const int knobW = 64;
+    const int knobH = CTRL_H - 4;
     int x = 8;
 
-    // Knobs
     sliderThreshold.setBounds (x, ctrlY + 2, knobW, knobH - 16);
     lblThreshold.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 4;
@@ -124,20 +136,21 @@ void PaAutoEQEditor::resized()
     lblMaxBands.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 16;
 
-    // Toggle buttons
     btnEnabled.setBounds (x, ctrlY + 10, 80, 24);
     btnBypass.setBounds  (x, ctrlY + 38, 80, 24);
     x += 92;
 
-    // Action buttons — 2 columns: [Load, Save] | [Freeze, Reset]
     btnLoad.setBounds   (x,      ctrlY + 10, 88, 26);
     btnSave.setBounds   (x,      ctrlY + 42, 88, 26);
     btnFreeze.setBounds (x + 94, ctrlY + 10, 88, 26);
     btnReset.setBounds  (x + 94, ctrlY + 42, 88, 26);
     x += 194;
 
-    // Labels (remaining width)
-    lblCurve.setBounds  (x, ctrlY + 8,  w - x - 8, 18);
+    btnDisplayMode.setBounds (x, ctrlY + 10, 80, 26);
+    btnEditBands  .setBounds (x, ctrlY + 42, 80, 26);
+    x += 88;
+
+    lblCurve .setBounds (x, ctrlY + 8,  w - x - 8, 18);
     lblStatus.setBounds (x, ctrlY + 30, w - x - 8, 22);
 }
 
@@ -147,12 +160,10 @@ void PaAutoEQEditor::paint (juce::Graphics& g)
 {
     g.fillAll (juce::Colour (0xFF0D0D1A));
 
-    // Control strip background
     const int ctrlY = getHeight() - CTRL_H;
     g.setColour (juce::Colour (0xFF14141F));
     g.fillRect (0, ctrlY, getWidth(), CTRL_H);
 
-    // Separator line
     g.setColour (juce::Colour (0xFF2A2A4A));
     g.drawHorizontalLine (ctrlY, 0.0f, static_cast<float> (getWidth()));
 }
@@ -161,13 +172,11 @@ void PaAutoEQEditor::paint (juce::Graphics& g)
 
 void PaAutoEQEditor::timerCallback()
 {
-    // Push latest spectrum data to display
     float freqs[FFTAnalyzer::N_POINTS];
     float liveDb[FFTAnalyzer::N_POINTS];
     processor.fftAnalyzer.getSpectrum (freqs, liveDb);
     spectrumDisplay.updateLive (freqs, liveDb, FFTAnalyzer::N_POINTS);
 
-    // Push target curve if loaded
     if (processor.targetCurve.isLoaded())
     {
         float targetDb[FFTAnalyzer::N_POINTS];
@@ -181,14 +190,21 @@ void PaAutoEQEditor::timerCallback()
         lblCurve.setText ("No curve loaded", juce::dontSendNotification);
     }
 
-    // Push band markers
-    spectrumDisplay.updateBands (processor.eqBank.getBands());
+    const auto bands = processor.eqBank.getBands();
+    spectrumDisplay.updateBands (bands);
 
-    // Freeze button label
+    // Update band editor if open
+    if (bandEditorWindow != nullptr && bandEditorWindow->isVisible())
+        bandEditorWindow->getPanel()->updateBands (bands);
+
     const bool frozen = *processor.apvts.getRawParameterValue ("frozen") > 0.5f;
     btnFreeze.setButtonText (frozen ? "Thaw EQ" : "Freeze EQ");
 
-    // Status
+    // Display mode button label
+    btnDisplayMode.setButtonText (
+        spectrumDisplay.getDisplayMode() == SpectrumDisplay::DisplayMode::Bars
+            ? "Line" : "Bars");
+
     const float  dev       = processor.maxDeviation.load();
     const bool   converged = processor.isConverged.load();
     const int    nBands    = processor.activeBands.load();
@@ -248,7 +264,6 @@ void PaAutoEQEditor::loadCurveClicked()
 
 void PaAutoEQEditor::saveCurveClicked()
 {
-    // Grab the current live spectrum
     float freqs[FFTAnalyzer::N_POINTS];
     float liveDb[FFTAnalyzer::N_POINTS];
     processor.fftAnalyzer.getSpectrum (freqs, liveDb);
@@ -267,13 +282,11 @@ void PaAutoEQEditor::saveCurveClicked()
             if (file == juce::File{})
                 return;
 
-            // Ensure .json extension
             if (file.getFileExtension().toLowerCase() != ".json")
                 file = file.withFileExtension ("json");
 
             lastCurvesDir = file.getParentDirectory();
 
-            // Build JSON: { "freqs": [...], "db": [...] }
             juce::String json = "{\n  \"freqs\": [";
             for (int i = 0; i < FFTAnalyzer::N_POINTS; ++i)
             {
@@ -297,4 +310,33 @@ void PaAutoEQEditor::saveCurveClicked()
 void PaAutoEQEditor::resetClicked()
 {
     processor.resetBands();
+}
+
+void PaAutoEQEditor::toggleDisplayMode()
+{
+    using DM = SpectrumDisplay::DisplayMode;
+    const DM next = (spectrumDisplay.getDisplayMode() == DM::Line) ? DM::Bars : DM::Line;
+    spectrumDisplay.setDisplayMode (next);
+}
+
+void PaAutoEQEditor::openBandEditor()
+{
+    if (bandEditorWindow == nullptr)
+    {
+        bandEditorWindow = std::make_unique<BandEditorWindow> (this);
+
+        // Wire the panel's callback to processor.updateBand
+        bandEditorWindow->getPanel()->onBandChanged = [this] (int idx, BandParams bp)
+        {
+            processor.updateBand (idx, bp);
+        };
+    }
+    else if (!bandEditorWindow->isVisible())
+    {
+        bandEditorWindow->setVisible (true);
+    }
+    else
+    {
+        bandEditorWindow->toFront (true);
+    }
 }

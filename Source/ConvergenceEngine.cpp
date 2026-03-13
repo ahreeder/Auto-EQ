@@ -38,6 +38,12 @@ ConvergenceState ConvergenceEngine::tick (const float* currentDb,
         if (!bands[b].active)
             continue;
 
+        if (bands[b].locked)
+        {
+            ++activeBands;
+            continue;   // locked bands are never nudged or deactivated
+        }
+
         ++activeBands;
 
         // Find the nearest frequency bin to this band's centre

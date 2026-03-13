@@ -53,6 +53,11 @@ public:
     // Reset all EQ bands to zero
     void resetBands();
 
+    // Message-thread call: manually set one band (from drag or band editor).
+    // Convergence engine will still nudge unlocked bands each tick,
+    // but locked bands will be preserved as-is.
+    void updateBand (int idx, const BandParams& p);
+
     // Load a target curve from file (call from message thread)
     bool loadTargetCurve (const juce::File& file);
 

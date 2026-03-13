@@ -8,4 +8,5 @@ struct BandParams
     float      gainDb = 0.0f;
     float      q      = 1.41f;
     bool       active = false;
+    bool       locked = false;
 };

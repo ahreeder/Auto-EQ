@@ -135,6 +135,14 @@ void PaAutoEQProcessor::resetBands()
     activeBands.store (0);
 }
 
+void PaAutoEQProcessor::updateBand (int idx, const BandParams& p)
+{
+    if (idx < 0 || idx >= MAX_BANDS)
+        return;
+    currentBands[idx] = p;
+    eqBank.setBands (currentBands);
+}
+
 bool PaAutoEQProcessor::loadTargetCurve (const juce::File& file)
 {
     return targetCurve.loadFromFile (file);

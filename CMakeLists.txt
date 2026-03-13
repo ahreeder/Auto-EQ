@@ -36,6 +36,7 @@ target_sources(PaAutoEQ PRIVATE
     Source/TargetCurve.cpp
     Source/ConvergenceEngine.cpp
     Source/SpectrumDisplay.cpp
+    Source/BandEditorPanel.cpp
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
 )

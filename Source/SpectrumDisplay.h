@@ -3,11 +3,13 @@
 #include "FFTAnalyzer.h"
 #include "EQBank.h"
 #include <array>
+#include <functional>
 
-// Draws the live spectrum, target curve, difference fill, and EQ band markers.
 class SpectrumDisplay : public juce::Component
 {
 public:
+    enum class DisplayMode { Line, Bars };
+
     SpectrumDisplay();
 
     // Called from message thread (timer) to push new data before repaint
@@ -15,10 +17,21 @@ public:
     void updateTarget (const float* freqs, const float* db, int n);
     void updateBands  (const std::array<BandParams, MAX_BANDS>& bands);
 
-    void paint (juce::Graphics& g) override;
-    void resized() override {}
+    void setDisplayMode (DisplayMode m) { displayMode = m; repaint(); }
+    DisplayMode getDisplayMode() const  { return displayMode; }
 
-    // Colours (can be set from editor)
+    void paint   (juce::Graphics& g) override;
+    void resized () override {}
+
+    void mouseMove  (const juce::MouseEvent& e) override;
+    void mouseDown  (const juce::MouseEvent& e) override;
+    void mouseDrag  (const juce::MouseEvent& e) override;
+    void mouseUp    (const juce::MouseEvent& e) override;
+
+    // Fired on message thread when user drags a band marker
+    std::function<void (int bandIdx, BandParams)> onBandChanged;
+
+    // Colours
     juce::Colour colLive   { 0xFF00C8FF };
     juce::Colour colTarget { 0xFFFFAA00 };
     juce::Colour colDiff   { 0x4000FF80 };
@@ -26,6 +39,7 @@ public:
 private:
     static constexpr float DB_MIN = -80.0f;
     static constexpr float DB_MAX =   6.0f;
+    static constexpr float HIT_RADIUS = 14.0f;
 
     mutable juce::SpinLock dataLock;
 
@@ -33,16 +47,26 @@ private:
     std::vector<float> targetFreqs, targetDb;
     std::array<BandParams, MAX_BANDS> bands {};
 
-    // Map dB value to y pixel
-    float dbToY (float db, float height) const noexcept;
-    // Map frequency to x pixel (log scale)
-    float freqToX (float freq, float width) const noexcept;
+    DisplayMode displayMode { DisplayMode::Line };
 
-    // Draw a curve from parallel freq/db arrays
+    // Drag state
+    int   dragBandIdx { -1 };
+
+    // Coordinate helpers
+    float dbToY   (float db,   float height) const noexcept;
+    float freqToX (float freq, float width)  const noexcept;
+    float xToFreq (float x,    float width)  const noexcept;
+    float yToDb   (float y,    float height) const noexcept;
+
+    int  hitTestBand (int mx, int my) const;  // returns band index or -1
+
     juce::Path buildCurvePath (const std::vector<float>& freqs,
-                               const std::vector<float>& db,
-                               float w, float h) const;
+                                const std::vector<float>& db,
+                                float w, float h) const;
 
     void drawGrid (juce::Graphics& g, float w, float h) const;
-    void drawBandMarkers (juce::Graphics& g, float w, float h) const;
+    void drawBars (juce::Graphics& g,
+                   const std::vector<float>& freqs,
+                   const std::vector<float>& db,
+                   float w, float h) const;
 };
