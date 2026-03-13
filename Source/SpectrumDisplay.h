@@ -20,6 +20,9 @@ public:
     void setDisplayMode (DisplayMode m) { displayMode = m; repaint(); }
     DisplayMode getDisplayMode() const  { return displayMode; }
 
+    void  setDisplayOffset (float db) { displayOffsetDb = db; repaint(); }
+    float getDisplayOffset()  const   { return displayOffsetDb; }
+
     void paint   (juce::Graphics& g) override;
     void resized () override {}
 
@@ -47,7 +50,8 @@ private:
     std::vector<float> targetFreqs, targetDb;
     std::array<BandParams, MAX_BANDS> bands {};
 
-    DisplayMode displayMode { DisplayMode::Line };
+    DisplayMode displayMode    { DisplayMode::Line };
+    float       displayOffsetDb { 0.0f };
 
     // Drag state
     int   dragBandIdx { -1 };

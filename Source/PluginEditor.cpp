@@ -64,6 +64,22 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     lblMaxBands.setFont (11.0f);
     addAndMakeVisible (lblMaxBands);
 
+    // Display offset slider (visual only — shifts live spectrum up/down)
+    sliderOffset.setSliderStyle (juce::Slider::RotaryVerticalDrag);
+    sliderOffset.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 50, 16);
+    sliderOffset.setColour (juce::Slider::rotarySliderFillColourId, juce::Colour (0xFFAA88FF));
+    sliderOffset.setRange (-40.0, 40.0, 0.5);
+    sliderOffset.setValue (0.0);
+    sliderOffset.setDoubleClickReturnValue (true, 0.0);
+    sliderOffset.onValueChange = [this] {
+        spectrumDisplay.setDisplayOffset ((float) sliderOffset.getValue());
+    };
+    addAndMakeVisible (sliderOffset);
+    lblOffset.setText ("Offset", juce::dontSendNotification);
+    lblOffset.setJustificationType (juce::Justification::centred);
+    lblOffset.setFont (11.0f);
+    addAndMakeVisible (lblOffset);
+
     // Status / curve label
     lblCurve.setFont (11.0f);
     lblCurve.setColour (juce::Label::textColourId, juce::Colour (0xFFFFAA00));
@@ -134,6 +150,10 @@ void PaAutoEQEditor::resized()
 
     sliderMaxBands.setBounds (x, ctrlY + 2, knobW, knobH - 16);
     lblMaxBands.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
+    x += knobW + 4;
+
+    sliderOffset.setBounds (x, ctrlY + 2, knobW, knobH - 16);
+    lblOffset.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 16;
 
     btnEnabled.setBounds (x, ctrlY + 10, 80, 24);

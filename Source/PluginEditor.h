@@ -76,7 +76,8 @@ private:
 
     juce::Slider  sliderThreshold, sliderSpeed;
     juce::Slider  sliderMaxBands;
-    juce::Label   lblThreshold, lblSpeed, lblMaxBands;
+    juce::Slider  sliderOffset;
+    juce::Label   lblThreshold, lblSpeed, lblMaxBands, lblOffset;
     juce::Label   lblCurve, lblStatus;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attEnabled;

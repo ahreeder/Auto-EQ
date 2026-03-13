@@ -264,16 +264,20 @@ void SpectrumDisplay::paint (juce::Graphics& g)
 
     drawGrid (g, w, h);
 
+    // Apply display offset to live data copy
+    std::vector<float> ldOff = ld;
+    for (auto& v : ldOff) v += displayOffsetDb;
+
     if (displayMode == DisplayMode::Bars)
     {
         // Bar RTA for live spectrum
-        if (!lf.empty() && lf.size() == ld.size())
-            drawBars (g, lf, ld, w, h);
+        if (!lf.empty() && lf.size() == ldOff.size())
+            drawBars (g, lf, ldOff, w, h);
     }
     else
     {
         // Diff fill (between live and target)
-        if (!lf.empty() && !tf.empty() && lf.size() == ld.size() && tf.size() == td.size())
+        if (!lf.empty() && !tf.empty() && lf.size() == ldOff.size() && tf.size() == td.size())
         {
             juce::Path diffFill;
             bool started = false;
@@ -290,7 +294,7 @@ void SpectrumDisplay::paint (juce::Graphics& g)
             for (int i = (int) lf.size() - 1; i >= 0; --i)
             {
                 if (lf[i] < FFTAnalyzer::F_MIN || lf[i] > FFTAnalyzer::F_MAX) continue;
-                diffFill.lineTo (freqToX (lf[i], w), dbToY (ld[i], h));
+                diffFill.lineTo (freqToX (lf[i], w), dbToY (ldOff[i], h));
             }
             diffFill.closeSubPath();
 
@@ -299,9 +303,9 @@ void SpectrumDisplay::paint (juce::Graphics& g)
         }
 
         // Live curve
-        if (!lf.empty() && lf.size() == ld.size())
+        if (!lf.empty() && lf.size() == ldOff.size())
         {
-            auto path = buildCurvePath (lf, ld, w, h);
+            auto path = buildCurvePath (lf, ldOff, w, h);
             g.setColour (colLive);
             g.strokePath (path, juce::PathStrokeType (2.0f));
         }
