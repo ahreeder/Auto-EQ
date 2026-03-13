@@ -5,7 +5,6 @@
 #include "SpectrumDisplay.h"
 #include "BandEditorPanel.h"
 
-// Simple DocumentWindow that hosts BandEditorPanel.
 class BandEditorWindow : public juce::DocumentWindow
 {
 public:
@@ -17,7 +16,6 @@ public:
         setUsingNativeTitleBar (true);
         panel = std::make_unique<BandEditorPanel>();
 
-        // Wrap in Viewport for scrolling
         viewport = std::make_unique<juce::Viewport>();
         viewport->setViewedComponent (panel.get(), false);
         viewport->setScrollBarsShown (true, false);
@@ -33,7 +31,6 @@ public:
     }
 
     void closeButtonPressed() override { setVisible (false); }
-
     BandEditorPanel* getPanel() { return panel.get(); }
 
 private:
@@ -42,7 +39,8 @@ private:
 };
 
 class PaAutoEQEditor final : public juce::AudioProcessorEditor,
-                              private juce::Timer
+                              private juce::Timer,
+                              private juce::ChangeListener
 {
 public:
     explicit PaAutoEQEditor (PaAutoEQProcessor&);
@@ -53,6 +51,8 @@ public:
 
 private:
     void timerCallback() override;
+    void changeListenerCallback (juce::ChangeBroadcaster* source) override;
+
     void loadCurveClicked();
     void saveCurveClicked();
     void clearCurveClicked();
@@ -60,6 +60,7 @@ private:
     void resetClicked();
     void toggleDisplayMode();
     void openBandEditor();
+    void showColourPicker (int target, juce::Button& source);
 
     PaAutoEQProcessor& processor;
 
@@ -67,32 +68,35 @@ private:
     std::unique_ptr<BandEditorWindow> bandEditorWindow;
 
     // Controls
-    juce::ToggleButton btnEnabled    { "Auto EQ" };
-    juce::ToggleButton btnBypass     { "Bypass" };
-    juce::TextButton   btnLoad       { "Load Curve" };
-    juce::TextButton   btnSave       { "Save Curve" };
-    juce::TextButton   btnClearCurve { "Clear Curve" };
-    juce::TextButton   btnDeleteCurve{ "Delete Curve" };
-    juce::ToggleButton btnFreeze     { "Freeze EQ" };
-    juce::TextButton   btnReset      { "Reset EQ" };
-    juce::TextButton   btnDisplayMode{ "Bars" };   // toggles Line / Bars
+    juce::ToggleButton btnEnabled     { "Auto EQ" };
+    juce::ToggleButton btnBypass      { "Bypass" };
+    juce::TextButton   btnCurveMenu   { u8"\u25bc" };  // ▼
+    juce::Label        lblCurveName;
+    juce::ToggleButton btnFreeze      { "Freeze EQ" };
+    juce::TextButton   btnReset       { "Reset EQ" };
+    juce::TextButton   btnDisplayMode { "Bars" };
     juce::ComboBox     cmbBarRes;
-    juce::TextButton   btnEditBands  { "Edit Bands" };
+    juce::TextButton   btnEditBands   { "Edit Bands" };
 
-    juce::Slider  sliderThreshold, sliderSpeed;
-    juce::Slider  sliderMaxBands;
-    juce::Slider  sliderOffset;
-    juce::Slider  sliderAvgTime;
-    juce::Label   lblThreshold, lblSpeed, lblMaxBands, lblOffset, lblAvgTime;
-    juce::Label   lblCurve, lblStatus;
+    // Colour picker squares
+    juce::TextButton   btnColLive;
+    juce::TextButton   btnColTarget;
+    juce::TextButton   btnColDiff;
+
+    juce::Slider  sliderThreshold, sliderMaxBands, sliderAvgTime, sliderOffset;
+    juce::Label   lblThreshold, lblMaxBands, lblAvgTime, lblOffset;
+    juce::Label   lblStatus;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attEnabled;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attBypass;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attFreeze;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attThreshold;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attSpeed;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attMaxBands;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attAvgTime;
+
+    // Colour selector state (SafePointer goes null when CallOutBox destroys the selector)
+    juce::Component::SafePointer<juce::ColourSelector> activeColourSelector;
+    int activeColourTarget { 0 };  // 0=live, 1=target, 2=diff
 
     juce::File lastCurvesDir;
     std::unique_ptr<juce::FileChooser> fileChooser;

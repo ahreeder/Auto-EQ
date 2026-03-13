@@ -14,12 +14,9 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     // ── Spectrum display ─────────────────────────────────────────────────
     addAndMakeVisible (spectrumDisplay);
 
-    // Wire drag callback to processor
     spectrumDisplay.onBandChanged = [this] (int idx, BandParams bp)
     {
         processor.updateBand (idx, bp);
-
-        // Also update the band editor if open
         if (bandEditorWindow != nullptr && bandEditorWindow->isVisible())
             bandEditorWindow->getPanel()->updateBands (processor.eqBank.getBands());
     };
@@ -27,10 +24,37 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     // ── Controls ─────────────────────────────────────────────────────────
     addAndMakeVisible (btnEnabled);
     addAndMakeVisible (btnBypass);
-    addAndMakeVisible (btnLoad);
-    addAndMakeVisible (btnSave);
-    addAndMakeVisible (btnClearCurve);
-    addAndMakeVisible (btnDeleteCurve);
+
+    // Curve dropdown ▼ button + name label
+    btnCurveMenu.onClick = [this]
+    {
+        juce::PopupMenu menu;
+        menu.addItem (1, "Load Curve");
+        menu.addItem (2, "Save Curve");
+        menu.addSeparator();
+        menu.addItem (3, "Clear Curve");
+        menu.addItem (4, "Delete Curve");
+
+        menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&btnCurveMenu),
+            [this] (int result)
+            {
+                switch (result)
+                {
+                    case 1: loadCurveClicked();   break;
+                    case 2: saveCurveClicked();   break;
+                    case 3: clearCurveClicked();  break;
+                    case 4: deleteCurveClicked(); break;
+                    default: break;
+                }
+            });
+    };
+    addAndMakeVisible (btnCurveMenu);
+
+    lblCurveName.setFont (11.0f);
+    lblCurveName.setColour (juce::Label::textColourId, juce::Colour (0xFFFFAA00));
+    lblCurveName.setText ("No curve", juce::dontSendNotification);
+    addAndMakeVisible (lblCurveName);
+
     addAndMakeVisible (btnFreeze);
     addAndMakeVisible (btnReset);
     addAndMakeVisible (btnDisplayMode);
@@ -39,7 +63,7 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     cmbBarRes.addItem ("1/6 Oct",  2);
     cmbBarRes.addItem ("1/12 Oct", 3);
     cmbBarRes.addItem ("Fine",     4);
-    cmbBarRes.setSelectedId (4, juce::dontSendNotification);  // Fine default
+    cmbBarRes.setSelectedId (4, juce::dontSendNotification);
     cmbBarRes.onChange = [this]
     {
         const int id = cmbBarRes.getSelectedId();
@@ -47,8 +71,21 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
         spectrumDisplay.setBarResolution (n);
     };
     addAndMakeVisible (cmbBarRes);
-
     addAndMakeVisible (btnEditBands);
+
+    // Colour picker squares — coloured to match their curve, tooltip to identify
+    auto setupColBtn = [this] (juce::TextButton& btn, juce::Colour col,
+                                const juce::String& tip, int target)
+    {
+        btn.setColour (juce::TextButton::buttonColourId,   col.withAlpha (1.0f));
+        btn.setColour (juce::TextButton::buttonOnColourId, col.withAlpha (1.0f).brighter (0.2f));
+        btn.setTooltip (tip);
+        btn.onClick = [this, &btn, target] { showColourPicker (target, btn); };
+        addAndMakeVisible (btn);
+    };
+    setupColBtn (btnColLive,   spectrumDisplay.colLive,   "Live curve colour",   0);
+    setupColBtn (btnColTarget, spectrumDisplay.colTarget, "Target curve colour", 1);
+    setupColBtn (btnColDiff,   spectrumDisplay.colDiff,   "Diff fill colour",    2);
 
     // Threshold slider
     sliderThreshold.setSliderStyle (juce::Slider::RotaryVerticalDrag);
@@ -59,16 +96,6 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     lblThreshold.setJustificationType (juce::Justification::centred);
     lblThreshold.setFont (11.0f);
     addAndMakeVisible (lblThreshold);
-
-    // Speed slider
-    sliderSpeed.setSliderStyle (juce::Slider::RotaryVerticalDrag);
-    sliderSpeed.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 50, 16);
-    sliderSpeed.setColour (juce::Slider::rotarySliderFillColourId, juce::Colour (0xFF00C8FF));
-    addAndMakeVisible (sliderSpeed);
-    lblSpeed.setText ("Speed", juce::dontSendNotification);
-    lblSpeed.setJustificationType (juce::Justification::centred);
-    lblSpeed.setFont (11.0f);
-    addAndMakeVisible (lblSpeed);
 
     // Max bands slider
     sliderMaxBands.setSliderStyle (juce::Slider::RotaryVerticalDrag);
@@ -90,7 +117,7 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     lblAvgTime.setFont (11.0f);
     addAndMakeVisible (lblAvgTime);
 
-    // Display offset slider (visual only — shifts live spectrum up/down)
+    // Display offset slider
     sliderOffset.setSliderStyle (juce::Slider::RotaryVerticalDrag);
     sliderOffset.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 50, 16);
     sliderOffset.setColour (juce::Slider::rotarySliderFillColourId, juce::Colour (0xFFAA88FF));
@@ -106,19 +133,10 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     lblOffset.setFont (11.0f);
     addAndMakeVisible (lblOffset);
 
-    // Status / curve label
-    lblCurve.setFont (11.0f);
-    lblCurve.setColour (juce::Label::textColourId, juce::Colour (0xFFFFAA00));
-    addAndMakeVisible (lblCurve);
-
     lblStatus.setFont (13.0f);
     addAndMakeVisible (lblStatus);
 
     // Button callbacks
-    btnLoad.onClick        = [this] { loadCurveClicked(); };
-    btnSave.onClick        = [this] { saveCurveClicked(); };
-    btnClearCurve.onClick  = [this] { clearCurveClicked(); };
-    btnDeleteCurve.onClick = [this] { deleteCurveClicked(); };
     btnReset.onClick       = [this] { resetClicked(); };
     btnDisplayMode.onClick = [this] { toggleDisplayMode(); };
     btnEditBands.onClick   = [this] { openBandEditor(); };
@@ -140,8 +158,6 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
                        (processor.apvts, "frozen",    btnFreeze);
     attThreshold = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
                        (processor.apvts, "threshold", sliderThreshold);
-    attSpeed     = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
-                       (processor.apvts, "stepSize",  sliderSpeed);
     attMaxBands  = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
                        (processor.apvts, "maxBands",  sliderMaxBands);
     attAvgTime   = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
@@ -166,16 +182,12 @@ void PaAutoEQEditor::resized()
 
     spectrumDisplay.setBounds (0, 0, w, ctrlY);
 
-    const int knobW = 64;
+    const int knobW = 60;
     const int knobH = CTRL_H - 4;
     int x = 8;
 
     sliderThreshold.setBounds (x, ctrlY + 2, knobW, knobH - 16);
     lblThreshold.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
-    x += knobW + 4;
-
-    sliderSpeed.setBounds (x, ctrlY + 2, knobW, knobH - 16);
-    lblSpeed.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 4;
 
     sliderMaxBands.setBounds (x, ctrlY + 2, knobW, knobH - 16);
@@ -188,27 +200,34 @@ void PaAutoEQEditor::resized()
 
     sliderOffset.setBounds (x, ctrlY + 2, knobW, knobH - 16);
     lblOffset.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
-    x += knobW + 16;
+    x += knobW + 10;
 
-    btnEnabled.setBounds (x, ctrlY + 10, 80, 24);
-    btnBypass.setBounds  (x, ctrlY + 38, 80, 24);
-    x += 92;
+    btnEnabled.setBounds (x, ctrlY + 12, 72, 22);
+    btnBypass .setBounds (x, ctrlY + 40, 72, 22);
+    x += 80;
 
-    btnLoad.setBounds        (x,       ctrlY + 6,  80, 22);
-    btnSave.setBounds        (x,       ctrlY + 32, 80, 22);
-    btnClearCurve.setBounds  (x,       ctrlY + 58, 80, 22);
-    btnDeleteCurve.setBounds (x + 86,  ctrlY + 58, 80, 22);
-    btnFreeze.setBounds      (x + 86,  ctrlY + 6,  80, 22);
-    btnReset.setBounds       (x + 86,  ctrlY + 32, 80, 22);
-    x += 178;
+    // Colour pickers — 3 small squares stacked, each 20×20
+    const int sq = 20;
+    btnColLive  .setBounds (x, ctrlY + 8,  sq, sq);
+    btnColTarget.setBounds (x, ctrlY + 34, sq, sq);
+    btnColDiff  .setBounds (x, ctrlY + 60, sq, sq);
+    x += sq + 8;
 
-    btnDisplayMode.setBounds (x, ctrlY + 10, 80, 22);
-    cmbBarRes     .setBounds (x, ctrlY + 34, 80, 20);
-    btnEditBands  .setBounds (x, ctrlY + 58, 80, 22);
-    x += 88;
+    // Curve name label + ▼ dropdown button
+    btnCurveMenu.setBounds (x + 120, ctrlY + 22, 22, 22);
+    lblCurveName.setBounds (x, ctrlY + 8, 142, 16);
+    x += 150;
 
-    lblCurve .setBounds (x, ctrlY + 8,  w - x - 8, 18);
-    lblStatus.setBounds (x, ctrlY + 30, w - x - 8, 22);
+    btnFreeze.setBounds (x, ctrlY + 12, 76, 22);
+    btnReset .setBounds (x, ctrlY + 40, 76, 22);
+    x += 84;
+
+    btnDisplayMode.setBounds (x, ctrlY + 10, 76, 22);
+    cmbBarRes     .setBounds (x, ctrlY + 34, 76, 20);
+    btnEditBands  .setBounds (x, ctrlY + 58, 76, 22);
+    x += 84;
+
+    lblStatus.setBounds (x, ctrlY + 8, w - x - 8, 22);
 }
 
 // ── Paint ─────────────────────────────────────────────────────────────────
@@ -239,25 +258,22 @@ void PaAutoEQEditor::timerCallback()
         float targetDb[FFTAnalyzer::N_POINTS];
         processor.targetCurve.interpolateTo (freqs, targetDb, FFTAnalyzer::N_POINTS);
         spectrumDisplay.updateTarget (freqs, targetDb, FFTAnalyzer::N_POINTS);
-        lblCurve.setText ("Curve: " + processor.targetCurve.getName(),
-                          juce::dontSendNotification);
+        lblCurveName.setText (processor.targetCurve.getName(), juce::dontSendNotification);
     }
     else
     {
-        lblCurve.setText ("No curve loaded", juce::dontSendNotification);
+        lblCurveName.setText ("No curve", juce::dontSendNotification);
     }
 
     const auto bands = processor.eqBank.getBands();
     spectrumDisplay.updateBands (bands);
 
-    // Update band editor if open
     if (bandEditorWindow != nullptr && bandEditorWindow->isVisible())
         bandEditorWindow->getPanel()->updateBands (bands);
 
     const bool frozen = *processor.apvts.getRawParameterValue ("frozen") > 0.5f;
     btnFreeze.setButtonText (frozen ? "Thaw EQ" : "Freeze EQ");
 
-    // Display mode button label
     btnDisplayMode.setButtonText (
         spectrumDisplay.getDisplayMode() == SpectrumDisplay::DisplayMode::Bars
             ? "Line" : "Bars");
@@ -292,6 +308,58 @@ void PaAutoEQEditor::timerCallback()
 
     lblStatus.setColour (juce::Label::textColourId, statusColour);
     lblStatus.setText (statusText, juce::dontSendNotification);
+
+    spectrumDisplay.repaint();
+}
+
+// ── Colour picker ─────────────────────────────────────────────────────────
+
+void PaAutoEQEditor::showColourPicker (int target, juce::Button& source)
+{
+    activeColourTarget = target;
+
+    juce::Colour initial;
+    if      (target == 0) initial = spectrumDisplay.colLive;
+    else if (target == 1) initial = spectrumDisplay.colTarget;
+    else                  initial = spectrumDisplay.colDiff;
+
+    auto* cs = new juce::ColourSelector (
+        juce::ColourSelector::showColourAtTop  |
+        juce::ColourSelector::showSliders      |
+        juce::ColourSelector::showColourspace  |
+        juce::ColourSelector::showAlphaChannel);
+
+    cs->setCurrentColour (initial);
+    cs->addChangeListener (this);
+    cs->setSize (280, 280);
+
+    activeColourSelector = cs;
+
+    juce::CallOutBox::launchAsynchronously (
+        std::unique_ptr<juce::Component> (cs),
+        source.getScreenBounds(), nullptr);
+}
+
+void PaAutoEQEditor::changeListenerCallback (juce::ChangeBroadcaster* source)
+{
+    if (activeColourSelector == nullptr) return;
+    if (source != static_cast<juce::ChangeBroadcaster*> (activeColourSelector.getComponent())) return;
+
+    const juce::Colour c = activeColourSelector->getCurrentColour();
+
+    if      (activeColourTarget == 0) spectrumDisplay.colLive   = c;
+    else if (activeColourTarget == 1) spectrumDisplay.colTarget = c;
+    else                              spectrumDisplay.colDiff   = c;
+
+    // Keep button backgrounds in sync
+    auto syncBtn = [] (juce::TextButton& btn, juce::Colour col)
+    {
+        btn.setColour (juce::TextButton::buttonColourId,   col.withAlpha (1.0f));
+        btn.setColour (juce::TextButton::buttonOnColourId, col.withAlpha (1.0f).brighter (0.2f));
+    };
+    syncBtn (btnColLive,   spectrumDisplay.colLive);
+    syncBtn (btnColTarget, spectrumDisplay.colTarget);
+    syncBtn (btnColDiff,   spectrumDisplay.colDiff);
 
     spectrumDisplay.repaint();
 }
@@ -414,7 +482,6 @@ void PaAutoEQEditor::openBandEditor()
     {
         bandEditorWindow = std::make_unique<BandEditorWindow> (this);
 
-        // Wire the panel's callback to processor.updateBand
         bandEditorWindow->getPanel()->onBandChanged = [this] (int idx, BandParams bp)
         {
             processor.updateBand (idx, bp);

@@ -92,6 +92,9 @@ void PaAutoEQProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 //==============================================================================
 void PaAutoEQProcessor::timerCallback()
 {
+    // Always update averaging time — must not be gated behind enabled/loaded checks
+    fftAnalyzer.setAveragingTime (*apvts.getRawParameterValue ("avgTime"));
+
     const bool enabled = *apvts.getRawParameterValue ("enabled") > 0.5f;
     const bool frozen  = *apvts.getRawParameterValue ("frozen")  > 0.5f;
     if (!enabled || !targetCurve.isLoaded() || frozen)
