@@ -64,6 +64,16 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     lblMaxBands.setFont (11.0f);
     addAndMakeVisible (lblMaxBands);
 
+    // Avg time slider
+    sliderAvgTime.setSliderStyle (juce::Slider::RotaryVerticalDrag);
+    sliderAvgTime.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 50, 16);
+    sliderAvgTime.setColour (juce::Slider::rotarySliderFillColourId, juce::Colour (0xFFFF8844));
+    addAndMakeVisible (sliderAvgTime);
+    lblAvgTime.setText ("Avg Time", juce::dontSendNotification);
+    lblAvgTime.setJustificationType (juce::Justification::centred);
+    lblAvgTime.setFont (11.0f);
+    addAndMakeVisible (lblAvgTime);
+
     // Display offset slider (visual only — shifts live spectrum up/down)
     sliderOffset.setSliderStyle (juce::Slider::RotaryVerticalDrag);
     sliderOffset.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 50, 16);
@@ -116,6 +126,8 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
                        (processor.apvts, "stepSize",  sliderSpeed);
     attMaxBands  = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
                        (processor.apvts, "maxBands",  sliderMaxBands);
+    attAvgTime   = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
+                       (processor.apvts, "avgTime",   sliderAvgTime);
 
     startTimerHz (20);
 }
@@ -150,6 +162,10 @@ void PaAutoEQEditor::resized()
 
     sliderMaxBands.setBounds (x, ctrlY + 2, knobW, knobH - 16);
     lblMaxBands.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
+    x += knobW + 4;
+
+    sliderAvgTime.setBounds (x, ctrlY + 2, knobW, knobH - 16);
+    lblAvgTime.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 4;
 
     sliderOffset.setBounds (x, ctrlY + 2, knobW, knobH - 16);

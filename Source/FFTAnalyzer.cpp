@@ -27,6 +27,13 @@ void FFTAnalyzer::reset()
     hasData = false;
 }
 
+void FFTAnalyzer::setAveragingTime (float seconds) noexcept
+{
+    const float frameDuration = FFT_SIZE / static_cast<float> (sampleRate);
+    const float alpha = 1.0f - std::exp (-frameDuration / std::max (seconds, 0.01f));
+    emaAlpha.store (alpha);
+}
+
 void FFTAnalyzer::pushSamples (const float* data, int numSamples) noexcept
 {
     for (int i = 0; i < numSamples; ++i)
@@ -85,7 +92,8 @@ void FFTAnalyzer::computeAndSmooth() noexcept
         const float db = 20.0f * std::log10 (mag / FFT_SIZE + 1e-10f);
 
         // EMA smoothing
-        emaDb[k] = EMA_ALPHA * db + (1.0f - EMA_ALPHA) * emaDb[k];
+        const float alpha = emaAlpha.load();
+        emaDb[k] = alpha * db + (1.0f - alpha) * emaDb[k];
     }
 
     // Gaussian-style smoothing pass (5-tap) in log-frequency space

@@ -15,12 +15,14 @@ public:
     static constexpr int   N_POINTS  = 200;
     static constexpr float F_MIN     = 30.0f;
     static constexpr float F_MAX     = 16000.0f;
-    static constexpr float EMA_ALPHA = 0.15f;       // display smoothing
-
     FFTAnalyzer();
 
     void setSampleRate (double sr) { sampleRate = sr; }
     void reset();
+
+    // Set how many seconds the EMA integrates over (converts to alpha internally).
+    // Safe to call from any thread.
+    void setAveragingTime (float seconds) noexcept;
 
     // Audio thread: feed one channel of samples
     void pushSamples (const float* data, int numSamples) noexcept;
@@ -44,6 +46,7 @@ private:
     std::array<float, N_POINTS>             emaDb    {};
     bool                                    hasData  { false };
 
+    std::atomic<float>  emaAlpha  { 0.15f };   // computed from averaging time
     double sampleRate { 48000.0 };
 
     std::array<float, FFT_SIZE * 2>         fftBuf {};  // interleaved complex

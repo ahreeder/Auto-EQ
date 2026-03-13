@@ -77,7 +77,8 @@ private:
     juce::Slider  sliderThreshold, sliderSpeed;
     juce::Slider  sliderMaxBands;
     juce::Slider  sliderOffset;
-    juce::Label   lblThreshold, lblSpeed, lblMaxBands, lblOffset;
+    juce::Slider  sliderAvgTime;
+    juce::Label   lblThreshold, lblSpeed, lblMaxBands, lblOffset, lblAvgTime;
     juce::Label   lblCurve, lblStatus;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attEnabled;
@@ -86,6 +87,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attThreshold;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attSpeed;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attMaxBands;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attAvgTime;
 
     juce::File lastCurvesDir;
     std::unique_ptr<juce::FileChooser> fileChooser;

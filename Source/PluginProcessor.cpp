@@ -14,6 +14,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout PaAutoEQProcessor::createPar
         juce::NormalisableRange<float> (0.1f, 2.0f, 0.05f), 0.5f));
     layout.add (std::make_unique<juce::AudioParameterInt>    ("maxBands",  "Max Bands", 1, MAX_BANDS, 10));
     layout.add (std::make_unique<juce::AudioParameterBool>   ("frozen",    "Freeze EQ", false));
+    layout.add (std::make_unique<juce::AudioParameterFloat>  ("avgTime",   "Avg Time",
+        juce::NormalisableRange<float> (0.1f, 5.0f, 0.1f), 1.0f));
 
     return layout;
 }
@@ -108,6 +110,8 @@ void PaAutoEQProcessor::timerCallback()
     currentBands = eqBank.getBands();
 
     // Run convergence
+    fftAnalyzer.setAveragingTime (*apvts.getRawParameterValue ("avgTime"));
+
     ConvergenceSettings settings;
     settings.threshold = *apvts.getRawParameterValue ("threshold");
     settings.stepSize  = *apvts.getRawParameterValue ("stepSize");
