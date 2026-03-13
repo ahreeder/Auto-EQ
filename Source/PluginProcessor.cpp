@@ -13,6 +13,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout PaAutoEQProcessor::createPar
     layout.add (std::make_unique<juce::AudioParameterFloat>  ("stepSize",  "Speed",
         juce::NormalisableRange<float> (0.1f, 2.0f, 0.05f), 0.5f));
     layout.add (std::make_unique<juce::AudioParameterInt>    ("maxBands",  "Max Bands", 1, MAX_BANDS, 10));
+    layout.add (std::make_unique<juce::AudioParameterBool>   ("frozen",    "Freeze EQ", false));
 
     return layout;
 }
@@ -90,7 +91,8 @@ void PaAutoEQProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 void PaAutoEQProcessor::timerCallback()
 {
     const bool enabled = *apvts.getRawParameterValue ("enabled") > 0.5f;
-    if (!enabled || !targetCurve.isLoaded())
+    const bool frozen  = *apvts.getRawParameterValue ("frozen")  > 0.5f;
+    if (!enabled || !targetCurve.isLoaded() || frozen)
         return;
 
     // Get current spectrum

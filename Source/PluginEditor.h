@@ -29,6 +29,7 @@ private:
     juce::ToggleButton btnBypass   { "Bypass" };
     juce::TextButton   btnLoad     { "Load Curve" };
     juce::TextButton   btnSave     { "Save Curve" };
+    juce::ToggleButton btnFreeze   { "Freeze EQ" };
     juce::TextButton   btnReset    { "Reset EQ" };
 
     juce::Slider  sliderThreshold, sliderSpeed;
@@ -39,6 +40,7 @@ private:
     // Parameter attachments
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attEnabled;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attBypass;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attFreeze;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attThreshold;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attSpeed;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attMaxBands;

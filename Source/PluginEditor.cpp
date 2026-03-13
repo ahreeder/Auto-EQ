@@ -19,6 +19,7 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     addAndMakeVisible (btnBypass);
     addAndMakeVisible (btnLoad);
     addAndMakeVisible (btnSave);
+    addAndMakeVisible (btnFreeze);
     addAndMakeVisible (btnReset);
 
     // Threshold slider
@@ -78,6 +79,8 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
                        (processor.apvts, "enabled",   btnEnabled);
     attBypass    = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>
                        (processor.apvts, "bypass",    btnBypass);
+    attFreeze    = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>
+                       (processor.apvts, "frozen",    btnFreeze);
     attThreshold = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
                        (processor.apvts, "threshold", sliderThreshold);
     attSpeed     = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
@@ -126,11 +129,12 @@ void PaAutoEQEditor::resized()
     btnBypass.setBounds  (x, ctrlY + 38, 80, 24);
     x += 92;
 
-    // Action buttons
-    btnLoad.setBounds  (x, ctrlY +  4, 90, 24);
-    btnSave.setBounds  (x, ctrlY + 32, 90, 24);
-    btnReset.setBounds (x, ctrlY + 60, 90, 24);
-    x += 102;
+    // Action buttons — 2 columns: [Load, Save] | [Freeze, Reset]
+    btnLoad.setBounds   (x,      ctrlY + 10, 88, 26);
+    btnSave.setBounds   (x,      ctrlY + 42, 88, 26);
+    btnFreeze.setBounds (x + 94, ctrlY + 10, 88, 26);
+    btnReset.setBounds  (x + 94, ctrlY + 42, 88, 26);
+    x += 194;
 
     // Labels (remaining width)
     lblCurve.setBounds  (x, ctrlY + 8,  w - x - 8, 18);
@@ -180,21 +184,40 @@ void PaAutoEQEditor::timerCallback()
     // Push band markers
     spectrumDisplay.updateBands (processor.eqBank.getBands());
 
+    // Freeze button label
+    const bool frozen = *processor.apvts.getRawParameterValue ("frozen") > 0.5f;
+    btnFreeze.setButtonText (frozen ? "Thaw EQ" : "Freeze EQ");
+
     // Status
     const float  dev       = processor.maxDeviation.load();
     const bool   converged = processor.isConverged.load();
     const int    nBands    = processor.activeBands.load();
 
     juce::String statusText;
-    if (!processor.targetCurve.isLoaded())
-        statusText = "Load a target curve to begin";
-    else if (converged)
-        statusText = juce::String::formatted ("Converged  |  max dev: %.1f dB  |  bands: %d", dev, nBands);
-    else
-        statusText = juce::String::formatted ("Converging...  |  max dev: %.1f dB  |  bands: %d", dev, nBands);
+    juce::Colour statusColour;
 
-    lblStatus.setColour (juce::Label::textColourId,
-                         converged ? juce::Colour (0xFF00FF80) : juce::Colour (0xFFFFAA00));
+    if (!processor.targetCurve.isLoaded())
+    {
+        statusText   = "Load a target curve to begin";
+        statusColour = juce::Colour (0xFF888888);
+    }
+    else if (frozen)
+    {
+        statusText   = juce::String::formatted ("Frozen  |  max dev: %.1f dB  |  bands: %d", dev, nBands);
+        statusColour = juce::Colour (0xFF00C8FF);
+    }
+    else if (converged)
+    {
+        statusText   = juce::String::formatted ("Converged  |  max dev: %.1f dB  |  bands: %d", dev, nBands);
+        statusColour = juce::Colour (0xFF00FF80);
+    }
+    else
+    {
+        statusText   = juce::String::formatted ("Converging...  |  max dev: %.1f dB  |  bands: %d", dev, nBands);
+        statusColour = juce::Colour (0xFFFFAA00);
+    }
+
+    lblStatus.setColour (juce::Label::textColourId, statusColour);
     lblStatus.setText (statusText, juce::dontSendNotification);
 
     spectrumDisplay.repaint();
