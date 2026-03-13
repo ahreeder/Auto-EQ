@@ -17,6 +17,7 @@ public:
 private:
     void timerCallback() override;
     void loadCurveClicked();
+    void saveCurveClicked();
     void resetClicked();
 
     PaAutoEQProcessor& processor;
@@ -27,6 +28,7 @@ private:
     juce::ToggleButton btnEnabled  { "Auto EQ" };
     juce::ToggleButton btnBypass   { "Bypass" };
     juce::TextButton   btnLoad     { "Load Curve" };
+    juce::TextButton   btnSave     { "Save Curve" };
     juce::TextButton   btnReset    { "Reset EQ" };
 
     juce::Slider  sliderThreshold, sliderSpeed;
@@ -40,6 +42,8 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attThreshold;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attSpeed;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  attMaxBands;
+
+    juce::File lastCurvesDir;   // remembered across Load/Save dialogs
 
     std::unique_ptr<juce::FileChooser> fileChooser;
 

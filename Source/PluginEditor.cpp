@@ -18,6 +18,7 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     addAndMakeVisible (btnEnabled);
     addAndMakeVisible (btnBypass);
     addAndMakeVisible (btnLoad);
+    addAndMakeVisible (btnSave);
     addAndMakeVisible (btnReset);
 
     // Threshold slider
@@ -60,7 +61,17 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
 
     // Button callbacks
     btnLoad.onClick  = [this] { loadCurveClicked(); };
+    btnSave.onClick  = [this] { saveCurveClicked(); };
     btnReset.onClick = [this] { resetClicked(); };
+
+    // Default curves dir: Python app's curves/ folder next to this DLL,
+    // falling back to Documents if it doesn't exist yet.
+    juce::File defaultCurvesDir = juce::File::getSpecialLocation (
+                                      juce::File::userDocumentsDirectory)
+                                      .getChildFile ("pa-tuning-tool/curves");
+    lastCurvesDir = defaultCurvesDir.isDirectory()
+                        ? defaultCurvesDir
+                        : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
 
     // ── APVTS attachments ─────────────────────────────────────────────────
     attEnabled   = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>
@@ -116,8 +127,9 @@ void PaAutoEQEditor::resized()
     x += 92;
 
     // Action buttons
-    btnLoad.setBounds  (x, ctrlY + 10, 90, 26);
-    btnReset.setBounds (x, ctrlY + 42, 90, 26);
+    btnLoad.setBounds  (x, ctrlY +  4, 90, 24);
+    btnSave.setBounds  (x, ctrlY + 32, 90, 24);
+    btnReset.setBounds (x, ctrlY + 60, 90, 24);
     x += 102;
 
     // Labels (remaining width)
@@ -193,8 +205,7 @@ void PaAutoEQEditor::timerCallback()
 void PaAutoEQEditor::loadCurveClicked()
 {
     fileChooser = std::make_unique<juce::FileChooser> ("Load Target Curve",
-                      juce::File::getSpecialLocation (juce::File::userDocumentsDirectory),
-                      "*.json");
+                      lastCurvesDir, "*.json");
 
     fileChooser->launchAsync (juce::FileBrowserComponent::openMode |
                               juce::FileBrowserComponent::canSelectFiles,
@@ -203,11 +214,60 @@ void PaAutoEQEditor::loadCurveClicked()
             const auto file = fc.getResult();
             if (file != juce::File{})
             {
+                lastCurvesDir = file.getParentDirectory();
                 if (!processor.loadTargetCurve (file))
                     juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon,
                         "Load Failed", "Could not read curve file.\n"
                         "Expected JSON with \"freqs\" and \"db\" arrays.", "OK");
             }
+        });
+}
+
+void PaAutoEQEditor::saveCurveClicked()
+{
+    // Grab the current live spectrum
+    float freqs[FFTAnalyzer::N_POINTS];
+    float liveDb[FFTAnalyzer::N_POINTS];
+    processor.fftAnalyzer.getSpectrum (freqs, liveDb);
+
+    fileChooser = std::make_unique<juce::FileChooser> ("Save Curve",
+                      lastCurvesDir.getChildFile ("my_curve.json"), "*.json");
+
+    fileChooser->launchAsync (juce::FileBrowserComponent::saveMode |
+                              juce::FileBrowserComponent::canSelectFiles |
+                              juce::FileBrowserComponent::warnAboutOverwriting,
+        [this, freqsCopy = std::vector<float>(freqs, freqs + FFTAnalyzer::N_POINTS),
+               dbCopy    = std::vector<float>(liveDb, liveDb + FFTAnalyzer::N_POINTS)]
+        (const juce::FileChooser& fc)
+        {
+            auto file = fc.getResult();
+            if (file == juce::File{})
+                return;
+
+            // Ensure .json extension
+            if (file.getFileExtension().toLowerCase() != ".json")
+                file = file.withFileExtension ("json");
+
+            lastCurvesDir = file.getParentDirectory();
+
+            // Build JSON: { "freqs": [...], "db": [...] }
+            juce::String json = "{\n  \"freqs\": [";
+            for (int i = 0; i < FFTAnalyzer::N_POINTS; ++i)
+            {
+                json += juce::String (freqsCopy[i], 2);
+                if (i < FFTAnalyzer::N_POINTS - 1) json += ", ";
+            }
+            json += "],\n  \"db\": [";
+            for (int i = 0; i < FFTAnalyzer::N_POINTS; ++i)
+            {
+                json += juce::String (dbCopy[i], 2);
+                if (i < FFTAnalyzer::N_POINTS - 1) json += ", ";
+            }
+            json += "]\n}\n";
+
+            if (!file.replaceWithText (json))
+                juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon,
+                    "Save Failed", "Could not write to:\n" + file.getFullPathName(), "OK");
         });
 }
 
