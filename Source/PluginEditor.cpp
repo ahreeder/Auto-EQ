@@ -29,6 +29,8 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     addAndMakeVisible (btnBypass);
     addAndMakeVisible (btnLoad);
     addAndMakeVisible (btnSave);
+    addAndMakeVisible (btnClearCurve);
+    addAndMakeVisible (btnDeleteCurve);
     addAndMakeVisible (btnFreeze);
     addAndMakeVisible (btnReset);
     addAndMakeVisible (btnDisplayMode);
@@ -115,6 +117,8 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
     // Button callbacks
     btnLoad.onClick        = [this] { loadCurveClicked(); };
     btnSave.onClick        = [this] { saveCurveClicked(); };
+    btnClearCurve.onClick  = [this] { clearCurveClicked(); };
+    btnDeleteCurve.onClick = [this] { deleteCurveClicked(); };
     btnReset.onClick       = [this] { resetClicked(); };
     btnDisplayMode.onClick = [this] { toggleDisplayMode(); };
     btnEditBands.onClick   = [this] { openBandEditor(); };
@@ -190,11 +194,13 @@ void PaAutoEQEditor::resized()
     btnBypass.setBounds  (x, ctrlY + 38, 80, 24);
     x += 92;
 
-    btnLoad.setBounds   (x,      ctrlY + 10, 88, 26);
-    btnSave.setBounds   (x,      ctrlY + 42, 88, 26);
-    btnFreeze.setBounds (x + 94, ctrlY + 10, 88, 26);
-    btnReset.setBounds  (x + 94, ctrlY + 42, 88, 26);
-    x += 194;
+    btnLoad.setBounds        (x,       ctrlY + 6,  80, 22);
+    btnSave.setBounds        (x,       ctrlY + 32, 80, 22);
+    btnClearCurve.setBounds  (x,       ctrlY + 58, 80, 22);
+    btnDeleteCurve.setBounds (x + 86,  ctrlY + 58, 80, 22);
+    btnFreeze.setBounds      (x + 86,  ctrlY + 6,  80, 22);
+    btnReset.setBounds       (x + 86,  ctrlY + 32, 80, 22);
+    x += 178;
 
     btnDisplayMode.setBounds (x, ctrlY + 10, 80, 22);
     cmbBarRes     .setBounds (x, ctrlY + 34, 80, 20);
@@ -356,6 +362,38 @@ void PaAutoEQEditor::saveCurveClicked()
                 juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon,
                     "Save Failed", "Could not write to:\n" + file.getFullPathName(), "OK");
         });
+}
+
+void PaAutoEQEditor::clearCurveClicked()
+{
+    processor.clearTargetCurve();
+    spectrumDisplay.updateTarget (nullptr, nullptr, 0);
+}
+
+void PaAutoEQEditor::deleteCurveClicked()
+{
+    const juce::File file = processor.getLastCurveFile();
+    if (file == juce::File{})
+    {
+        juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::InfoIcon,
+            "Delete Curve", "No curve file is currently loaded.", "OK");
+        return;
+    }
+
+    juce::AlertWindow::showOkCancelBox (
+        juce::AlertWindow::WarningIcon,
+        "Delete Curve",
+        "Permanently delete \"" + file.getFileName() + "\" from disk?",
+        "Delete", "Cancel", nullptr,
+        juce::ModalCallbackFunction::create ([this, file] (int result)
+        {
+            if (result == 1)
+            {
+                file.deleteFile();
+                processor.clearTargetCurve();
+                spectrumDisplay.updateTarget (nullptr, nullptr, 0);
+            }
+        }));
 }
 
 void PaAutoEQEditor::resetClicked()

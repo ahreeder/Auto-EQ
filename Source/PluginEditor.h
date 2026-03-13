@@ -55,6 +55,8 @@ private:
     void timerCallback() override;
     void loadCurveClicked();
     void saveCurveClicked();
+    void clearCurveClicked();
+    void deleteCurveClicked();
     void resetClicked();
     void toggleDisplayMode();
     void openBandEditor();
@@ -69,6 +71,8 @@ private:
     juce::ToggleButton btnBypass     { "Bypass" };
     juce::TextButton   btnLoad       { "Load Curve" };
     juce::TextButton   btnSave       { "Save Curve" };
+    juce::TextButton   btnClearCurve { "Clear Curve" };
+    juce::TextButton   btnDeleteCurve{ "Delete Curve" };
     juce::ToggleButton btnFreeze     { "Freeze EQ" };
     juce::TextButton   btnReset      { "Reset EQ" };
     juce::TextButton   btnDisplayMode{ "Bars" };   // toggles Line / Bars

@@ -17,8 +17,16 @@ void SpectrumDisplay::updateLive (const float* freqs, const float* db, int n)
 void SpectrumDisplay::updateTarget (const float* freqs, const float* db, int n)
 {
     juce::SpinLock::ScopedLockType sl (dataLock);
-    targetFreqs.assign (freqs, freqs + n);
-    targetDb.assign    (db,    db    + n);
+    if (n > 0 && freqs != nullptr && db != nullptr)
+    {
+        targetFreqs.assign (freqs, freqs + n);
+        targetDb.assign    (db,    db    + n);
+    }
+    else
+    {
+        targetFreqs.clear();
+        targetDb.clear();
+    }
 }
 
 void SpectrumDisplay::updateBands (const std::array<BandParams, MAX_BANDS>& b)

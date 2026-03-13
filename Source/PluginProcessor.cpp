@@ -149,7 +149,18 @@ void PaAutoEQProcessor::updateBand (int idx, const BandParams& p)
 
 bool PaAutoEQProcessor::loadTargetCurve (const juce::File& file)
 {
-    return targetCurve.loadFromFile (file);
+    if (targetCurve.loadFromFile (file))
+    {
+        lastCurveFile = file;
+        return true;
+    }
+    return false;
+}
+
+void PaAutoEQProcessor::clearTargetCurve()
+{
+    targetCurve.clear();
+    lastCurveFile = juce::File{};
 }
 
 //==============================================================================

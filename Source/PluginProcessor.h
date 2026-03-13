@@ -58,13 +58,17 @@ public:
     // but locked bands will be preserved as-is.
     void updateBand (int idx, const BandParams& p);
 
-    // Load a target curve from file (call from message thread)
-    bool loadTargetCurve (const juce::File& file);
+    // Load / manage target curve (call from message thread)
+    bool         loadTargetCurve   (const juce::File& file);
+    void         clearTargetCurve  ();
+    juce::File   getLastCurveFile  () const { return lastCurveFile; }
 
 private:
     void timerCallback() override;
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createParams();
+
+    juce::File lastCurveFile;
 
     // Band state shared between timer and audio thread via EQBank's SpinLock
     std::array<BandParams, MAX_BANDS> currentBands {};
