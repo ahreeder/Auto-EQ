@@ -1,5 +1,5 @@
 #pragma once
-#include "EQBand.h"
+#include "EQBank.h"
 #include "FFTAnalyzer.h"
 #include <array>
 

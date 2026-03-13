@@ -1,7 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "FFTAnalyzer.h"
-#include "EQBand.h"
+#include "EQBank.h"
 #include <array>
 
 // Draws the live spectrum, target curve, difference fill, and EQ band markers.

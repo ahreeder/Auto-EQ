@@ -192,17 +192,23 @@ void PaAutoEQEditor::timerCallback()
 
 void PaAutoEQEditor::loadCurveClicked()
 {
-    juce::FileChooser chooser ("Load Target Curve", juce::File::getSpecialLocation (
-                                   juce::File::userDocumentsDirectory), "*.json");
+    fileChooser = std::make_unique<juce::FileChooser> ("Load Target Curve",
+                      juce::File::getSpecialLocation (juce::File::userDocumentsDirectory),
+                      "*.json");
 
-    if (chooser.browseForFileToOpen())
-    {
-        const auto file = chooser.getResult();
-        if (!processor.loadTargetCurve (file))
-            juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon,
-                "Load Failed", "Could not read curve file.\n"
-                "Expected JSON with \"freqs\" and \"db\" arrays.", "OK");
-    }
+    fileChooser->launchAsync (juce::FileBrowserComponent::openMode |
+                              juce::FileBrowserComponent::canSelectFiles,
+        [this] (const juce::FileChooser& fc)
+        {
+            const auto file = fc.getResult();
+            if (file != juce::File{})
+            {
+                if (!processor.loadTargetCurve (file))
+                    juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon,
+                        "Load Failed", "Could not read curve file.\n"
+                        "Expected JSON with \"freqs\" and \"db\" arrays.", "OK");
+            }
+        });
 }
 
 void PaAutoEQEditor::resetClicked()
