@@ -422,7 +422,7 @@ void PaAutoEQEditor::changeListenerCallback (juce::ChangeBroadcaster* source)
 void PaAutoEQEditor::loadCurveClicked()
 {
     fileChooser = std::make_unique<juce::FileChooser> ("Load Target Curve",
-                      lastCurvesDir, "*.json");
+                      lastCurvesDir, "*.json;*.trf");
 
     fileChooser->launchAsync (juce::FileBrowserComponent::openMode |
                               juce::FileBrowserComponent::canSelectFiles,
@@ -435,7 +435,7 @@ void PaAutoEQEditor::loadCurveClicked()
                 if (!processor.loadTargetCurve (file))
                     juce::AlertWindow::showMessageBoxAsync (juce::AlertWindow::WarningIcon,
                         "Load Failed", "Could not read curve file.\n"
-                        "Expected JSON with \"freqs\" and \"db\" arrays.", "OK");
+                        "Supported formats: JSON (.json) or Smaart TRF (.trf).", "OK");
             }
         });
 }

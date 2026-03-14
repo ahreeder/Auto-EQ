@@ -2,37 +2,91 @@
 #include <cmath>
 #include <algorithm>
 
+static bool loadFromJson (const juce::String& text, std::vector<CurvePoint>& points)
+{
+    auto json = juce::JSON::parse (text);
+    if (!json.isObject()) return false;
+
+    auto* freqsVar = json.getDynamicObject()->getProperties().getVarPointer ("freqs");
+    auto* dbVar    = json.getDynamicObject()->getProperties().getVarPointer ("db");
+
+    if (freqsVar == nullptr || dbVar == nullptr) return false;
+
+    auto& freqsArr = *freqsVar->getArray();
+    auto& dbArr    = *dbVar->getArray();
+
+    if (freqsArr.size() != dbArr.size() || freqsArr.size() < 2) return false;
+
+    points.reserve (freqsArr.size());
+    for (int i = 0; i < freqsArr.size(); ++i)
+        points.push_back ({ static_cast<float> (freqsArr[i]),
+                            static_cast<float> (dbArr[i]) });
+    return true;
+}
+
+// Parses Smaart .trf (Transfer Function Reference) files.
+// Format: plain-text header block, optional [Data] section marker,
+// then whitespace-separated columns: frequency  magnitude(dB)  [phase — ignored].
+// Header lines are skipped; any line whose first token parses as a positive
+// float is treated as a data row.
+static bool loadFromTrf (const juce::String& text, std::vector<CurvePoint>& points)
+{
+    const auto lines = juce::StringArray::fromLines (text);
+    bool inData = false;
+
+    for (const auto& raw : lines)
+    {
+        const auto line = raw.trim();
+        if (line.isEmpty()) continue;
+
+        // Section markers like [Data] or [Smaart Transfer Function Reference]
+        if (line.startsWith ("["))
+        {
+            inData = line.equalsIgnoreCase ("[data]") ||
+                     line.startsWithIgnoreCase ("[data");
+            continue;
+        }
+
+        // Skip key=value header lines
+        if (line.contains ("=") && !line.startsWithChar ('-') &&
+            !juce::CharacterFunctions::isDigit (line[0]))
+            continue;
+
+        // Try to parse first token as frequency
+        const auto tokens = juce::StringArray::fromTokens (line, " \t,", "");
+        if (tokens.size() < 2) continue;
+
+        const float freq = tokens[0].getFloatValue();
+        const float db   = tokens[1].getFloatValue();
+
+        if (freq <= 0.0f) continue;  // skip malformed / header rows
+
+        // Once we hit a valid data row we're implicitly in data mode
+        inData = true;
+        points.push_back ({ freq, db });
+    }
+
+    return points.size() >= 2;
+}
+
 bool TargetCurve::loadFromFile (const juce::File& file)
 {
     if (!file.existsAsFile())
         return false;
 
     const auto text = file.loadFileAsString();
-    auto json = juce::JSON::parse (text);
-
-    if (!json.isObject())
-        return false;
-
-    auto* freqsVar = json.getDynamicObject()->getProperties().getVarPointer ("freqs");
-    auto* dbVar    = json.getDynamicObject()->getProperties().getVarPointer ("db");
-
-    if (freqsVar == nullptr || dbVar == nullptr)
-        return false;
-
-    auto& freqsArr = *freqsVar->getArray();
-    auto& dbArr    = *dbVar->getArray();
-
-    if (freqsArr.size() != dbArr.size() || freqsArr.size() < 2)
-        return false;
+    const auto ext  = file.getFileExtension().toLowerCase();
 
     points.clear();
-    points.reserve (freqsArr.size());
 
-    for (int i = 0; i < freqsArr.size(); ++i)
-        points.push_back ({ static_cast<float> (freqsArr[i]),
-                            static_cast<float> (dbArr[i]) });
+    bool ok = false;
+    if (ext == ".trf")
+        ok = loadFromTrf (text, points);
+    else
+        ok = loadFromJson (text, points);
 
-    // Ensure sorted by frequency
+    if (!ok) { points.clear(); return false; }
+
     std::sort (points.begin(), points.end(),
                [] (const CurvePoint& a, const CurvePoint& b) { return a.freq < b.freq; });
 
