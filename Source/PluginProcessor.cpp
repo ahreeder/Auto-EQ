@@ -67,15 +67,11 @@ void PaAutoEQProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     float* left  = numChannels > 0 ? buffer.getWritePointer (0) : nullptr;
     float* right = numChannels > 1 ? buffer.getWritePointer (1) : nullptr;
 
-    // Apply EQ
-    eqBank.processBlock (left, right, numSamples);
-
-    // Feed post-EQ mono signal into FFT analyzer
+    // Capture pre-EQ signal for analysis (what the room actually sounds like)
     if (left != nullptr)
     {
         if (right != nullptr)
         {
-            // Mix to mono for analysis
             juce::AudioBuffer<float> mono (1, numSamples);
             auto* m = mono.getWritePointer (0);
             for (int i = 0; i < numSamples; ++i)
@@ -87,6 +83,9 @@ void PaAutoEQProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             fftAnalyzer.pushSamples (left, numSamples);
         }
     }
+
+    // Apply EQ
+    eqBank.processBlock (left, right, numSamples);
 }
 
 //==============================================================================
