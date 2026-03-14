@@ -215,44 +215,43 @@ void PaAutoEQEditor::resized()
     lblOffset.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 10;
 
-    // ── Auto EQ + Bypass (stacked, vertically centered) ──────────────────
-    // Two 22px buttons + 10px gap = 54px total  →  top = (90-54)/2 = 18
-    btnEnabled.setBounds (x, ctrlY + 18, 72, 22);
-    btnBypass .setBounds (x, ctrlY + 50, 72, 22);
-    x += 80;
+    // ── Auto EQ + Bypass + Freeze (three stacked, vertically centered) ─────
+    // 3×22 + 2×8 = 76px total  →  top = (90-76)/2 = 7
+    btnEnabled.setBounds (x, ctrlY + 7,  72, 22);
+    btnBypass .setBounds (x, ctrlY + 37, 72, 22);
+    btnFreeze .setBounds (x, ctrlY + 67, 72, 22);
+    x += 88;   // extra gap before curve section
 
-    // ── Curve name label (centered) + "..." button just after ────────────
+    // ── Curve name label (centered) + "..." button tight after ───────────
     const int curveNameW = 120;
     lblCurveName.setBounds (x, ctrlY + (CTRL_H - 16) / 2, curveNameW, 16);
-    btnCurveMenu.setBounds (x + curveNameW + 4, ctrlY + (CTRL_H - 22) / 2, 28, 22);
-    x += curveNameW + 4 + 28 + 8;
+    btnCurveMenu.setBounds (x + curveNameW + 2, ctrlY + (CTRL_H - 22) / 2, 28, 22);
+    x += curveNameW + 2 + 28 + 8;
 
-    // ── Freeze + Reset + Edit Bands (three stacked, vertically centered) ──
-    // Three 22px buttons + 2×8px gaps = 76px total  →  top = (90-76)/2 = 7
-    btnFreeze   .setBounds (x, ctrlY + 7,  76, 22);
-    btnReset    .setBounds (x, ctrlY + 37, 76, 22);
-    btnEditBands.setBounds (x, ctrlY + 67, 76, 22);
-    x += 84;
+    // ── Reset EQ + Edit Bands (two stacked, vertically centered) ──────────
+    // 2×22 + 8 = 52px total  →  top = (90-52)/2 = 19
+    btnReset    .setBounds (x, ctrlY + 19, 76, 22);
+    btnEditBands.setBounds (x, ctrlY + 49, 76, 22);
+    x += 92;   // extra gap before display controls
 
-    // ── Display mode + bar resolution (stacked, vertically centered) ──────
+    // ── Display mode + bar resolution (two stacked, vertically centered) ──
     // 22px button + 8px gap + 20px combo = 50px total  →  top = (90-50)/2 = 20
     btnDisplayMode.setBounds (x, ctrlY + 20, 76, 22);
     cmbBarRes     .setBounds (x, ctrlY + 50, 76, 20);
     x += 84;
 
-    // ── Status label (fills remaining space, stops before colour pickers) ─
-    // Colour section: 3×20px squares + 2×10px gaps = 80px + 10px right margin = 90px
-    const int colSecW = 90;
-    lblStatus.setBounds (x, ctrlY + (CTRL_H - 22) / 2, w - x - colSecW, 22);
+    // ── Status label (top of right area) + colours below it ──────────────
+    lblStatus.setBounds (x, ctrlY + 6, w - x - 8, 22);
 
-    // ── Colour pickers — bottom right, horizontal, with labels beneath ────
+    // Colour pickers — below status text, bottom-right aligned
+    // 3×20px squares + 2×16px gaps = 92px wide
     const int sq      = 20;
-    const int sqGap   = 10;
+    const int sqGap   = 16;
     const int lblH    = 12;
-    const int colX    = w - 10 - (3 * sq + 2 * sqGap);   // 80px section, 10px margin
-    const int sqY     = ctrlY + (CTRL_H - sq - 4 - lblH) / 2;
-    const int colLblY = sqY + sq + 4;
-    const int lblW    = 50;  // wide enough to center text; centered under square
+    const int colX    = w - 10 - (3 * sq + 2 * sqGap);
+    const int sqY     = ctrlY + 34;   // below status text row
+    const int colLblY = sqY + sq + 3;
+    const int lblW    = 52;           // centered under each square
 
     btnColTarget.setBounds (colX,                   sqY, sq, sq);
     lblColTarget.setBounds (colX - (lblW - sq) / 2, colLblY, lblW, lblH);
