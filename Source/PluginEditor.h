@@ -84,8 +84,8 @@ private:
     juce::TextButton   btnColDiff;
     juce::Label        lblColTarget, lblColLive, lblColDiff;
 
-    juce::Slider  sliderThreshold, sliderMaxBands, sliderAvgTime, sliderOffset;
-    juce::Label   lblThreshold, lblMaxBands, lblAvgTime, lblOffset;
+    juce::Slider  sliderThreshold, sliderMaxBands, sliderAvgTime, sliderOffset, sliderTargetOffset;
+    juce::Label   lblThreshold, lblMaxBands, lblAvgTime, lblOffset, lblTargetOffset;
     juce::Label   lblStatus;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  attEnabled;

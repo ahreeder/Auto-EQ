@@ -279,6 +279,10 @@ void SpectrumDisplay::paint (juce::Graphics& g)
     std::vector<float> ldOff = ld;
     for (auto& v : ldOff) v += displayOffsetDb;
 
+    // Apply target offset to target data copy
+    std::vector<float> tdOff = td;
+    for (auto& v : tdOff) v += targetOffsetDb;
+
     if (displayMode == DisplayMode::Bars)
     {
         // Bar RTA for live spectrum
@@ -288,7 +292,7 @@ void SpectrumDisplay::paint (juce::Graphics& g)
     else
     {
         // Diff fill (between live and target)
-        if (!lf.empty() && !tf.empty() && lf.size() == ldOff.size() && tf.size() == td.size())
+        if (!lf.empty() && !tf.empty() && lf.size() == ldOff.size() && tf.size() == tdOff.size())
         {
             juce::Path diffFill;
             bool started = false;
@@ -297,7 +301,7 @@ void SpectrumDisplay::paint (juce::Graphics& g)
             {
                 if (lf[i] < FFTAnalyzer::F_MIN || lf[i] > FFTAnalyzer::F_MAX) continue;
                 const float x       = freqToX (lf[i], w);
-                const float yTarget = dbToY (i < td.size() ? td[i] : 0.0f, h);
+                const float yTarget = dbToY (i < tdOff.size() ? tdOff[i] : 0.0f, h);
 
                 if (!started) { diffFill.startNewSubPath (x, yTarget); started = true; }
                 else            diffFill.lineTo (x, yTarget);
@@ -323,9 +327,9 @@ void SpectrumDisplay::paint (juce::Graphics& g)
     }
 
     // Target curve (always drawn)
-    if (!tf.empty() && tf.size() == td.size())
+    if (!tf.empty() && tf.size() == tdOff.size())
     {
-        auto path = buildCurvePath (tf, td, w, h);
+        auto path = buildCurvePath (tf, tdOff, w, h);
         g.setColour (colTarget);
         g.strokePath (path, juce::PathStrokeType (1.5f));
     }

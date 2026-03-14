@@ -140,10 +140,26 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
         spectrumDisplay.setDisplayOffset ((float) sliderOffset.getValue());
     };
     addAndMakeVisible (sliderOffset);
-    lblOffset.setText ("Offset", juce::dontSendNotification);
+    lblOffset.setText ("L Offset", juce::dontSendNotification);
     lblOffset.setJustificationType (juce::Justification::centred);
     lblOffset.setFont (11.0f);
     addAndMakeVisible (lblOffset);
+
+    // Target offset slider
+    sliderTargetOffset.setSliderStyle (juce::Slider::RotaryVerticalDrag);
+    sliderTargetOffset.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 50, 16);
+    sliderTargetOffset.setColour (juce::Slider::rotarySliderFillColourId, juce::Colour (0xFFFFAA00));
+    sliderTargetOffset.setRange (-40.0, 40.0, 0.5);
+    sliderTargetOffset.setValue (0.0);
+    sliderTargetOffset.setDoubleClickReturnValue (true, 0.0);
+    sliderTargetOffset.onValueChange = [this] {
+        spectrumDisplay.setTargetOffset ((float) sliderTargetOffset.getValue());
+    };
+    addAndMakeVisible (sliderTargetOffset);
+    lblTargetOffset.setText ("T Offset", juce::dontSendNotification);
+    lblTargetOffset.setJustificationType (juce::Justification::centred);
+    lblTargetOffset.setFont (11.0f);
+    addAndMakeVisible (lblTargetOffset);
 
     lblStatus.setFont (13.0f);
     addAndMakeVisible (lblStatus);
@@ -213,6 +229,10 @@ void PaAutoEQEditor::resized()
 
     sliderOffset.setBounds (x, ctrlY + 2, knobW, knobH - 16);
     lblOffset.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
+    x += knobW + 4;
+
+    sliderTargetOffset.setBounds (x, ctrlY + 2, knobW, knobH - 16);
+    lblTargetOffset.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 10;
 
     // ── Auto EQ + Bypass + Freeze (three stacked, vertically centered) ─────
@@ -222,11 +242,11 @@ void PaAutoEQEditor::resized()
     btnFreeze .setBounds (x, ctrlY + 67, 72, 22);
     x += 88;   // extra gap before curve section
 
-    // ── Curve name label (centered) + "..." button tight after ───────────
+    // ── "..." button on left + curve name label to its right ─────────────
     const int curveNameW = 120;
-    lblCurveName.setBounds (x, ctrlY + (CTRL_H - 16) / 2, curveNameW, 16);
-    btnCurveMenu.setBounds (x + curveNameW + 2, ctrlY + (CTRL_H - 22) / 2, 28, 22);
-    x += curveNameW + 2 + 28 + 8;
+    btnCurveMenu.setBounds (x, ctrlY + (CTRL_H - 22) / 2, 28, 22);
+    lblCurveName.setBounds (x + 28 + 2, ctrlY + (CTRL_H - 16) / 2, curveNameW, 16);
+    x += 28 + 2 + curveNameW + 8;
 
     // ── Reset EQ + Edit Bands (two stacked, vertically centered) ──────────
     // 2×22 + 8 = 52px total  →  top = (90-52)/2 = 19

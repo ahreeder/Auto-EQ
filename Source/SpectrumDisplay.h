@@ -23,6 +23,9 @@ public:
     void  setDisplayOffset (float db) { displayOffsetDb = db; repaint(); }
     float getDisplayOffset()  const   { return displayOffsetDb; }
 
+    void  setTargetOffset (float db) { targetOffsetDb = db; repaint(); }
+    float getTargetOffset()  const   { return targetOffsetDb; }
+
     // Number of bars to draw in Bars mode (decimates the 200-pt grid).
     void setBarResolution (int n) { barResolution = std::max (1, n); repaint(); }
     int  getBarResolution()  const { return barResolution; }
@@ -56,6 +59,7 @@ private:
 
     DisplayMode displayMode     { DisplayMode::Line };
     float       displayOffsetDb { 0.0f };
+    float       targetOffsetDb  { 0.0f };
     int         barResolution   { 200 };
 
     // Drag state
