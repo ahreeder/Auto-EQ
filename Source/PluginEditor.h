@@ -70,7 +70,7 @@ private:
     // Controls
     juce::ToggleButton btnEnabled     { "Auto EQ" };
     juce::ToggleButton btnBypass      { "Bypass" };
-    juce::TextButton   btnCurveMenu   { u8"\u25bc" };  // ▼
+    juce::TextButton   btnCurveMenu   { "..." };
     juce::Label        lblCurveName;
     juce::ToggleButton btnFreeze      { "Freeze EQ" };
     juce::TextButton   btnReset       { "Reset EQ" };
@@ -78,10 +78,11 @@ private:
     juce::ComboBox     cmbBarRes;
     juce::TextButton   btnEditBands   { "Edit Bands" };
 
-    // Colour picker squares
+    // Colour picker squares + labels
     juce::TextButton   btnColLive;
     juce::TextButton   btnColTarget;
     juce::TextButton   btnColDiff;
+    juce::Label        lblColTarget, lblColLive, lblColDiff;
 
     juce::Slider  sliderThreshold, sliderMaxBands, sliderAvgTime, sliderOffset;
     juce::Label   lblThreshold, lblMaxBands, lblAvgTime, lblOffset;

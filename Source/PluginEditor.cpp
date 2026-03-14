@@ -83,9 +83,21 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
         btn.onClick = [this, &btn, target] { showColourPicker (target, btn); };
         addAndMakeVisible (btn);
     };
-    setupColBtn (btnColLive,   spectrumDisplay.colLive,   "Live curve colour",   0);
     setupColBtn (btnColTarget, spectrumDisplay.colTarget, "Target curve colour", 1);
-    setupColBtn (btnColDiff,   spectrumDisplay.colDiff,   "Diff fill colour",    2);
+    setupColBtn (btnColLive,   spectrumDisplay.colLive,   "Live curve colour",   0);
+    setupColBtn (btnColDiff,   spectrumDisplay.colDiff,   "Reduction fill colour", 2);
+
+    auto setupColLabel = [this] (juce::Label& lbl, const juce::String& text)
+    {
+        lbl.setText (text, juce::dontSendNotification);
+        lbl.setFont (9.0f);
+        lbl.setJustificationType (juce::Justification::centred);
+        lbl.setColour (juce::Label::textColourId, juce::Colour (0xFFAAAAAA));
+        addAndMakeVisible (lbl);
+    };
+    setupColLabel (lblColTarget, "Target");
+    setupColLabel (lblColLive,   "Live");
+    setupColLabel (lblColDiff,   "Reduction");
 
     // Threshold slider
     sliderThreshold.setSliderStyle (juce::Slider::RotaryVerticalDrag);
@@ -186,6 +198,7 @@ void PaAutoEQEditor::resized()
     const int knobH = CTRL_H - 4;
     int x = 8;
 
+    // ── Knobs ────────────────────────────────────────────────────────────
     sliderThreshold.setBounds (x, ctrlY + 2, knobW, knobH - 16);
     lblThreshold.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 4;
@@ -202,32 +215,53 @@ void PaAutoEQEditor::resized()
     lblOffset.setBounds    (x, ctrlY + knobH - 14, knobW, 14);
     x += knobW + 10;
 
-    btnEnabled.setBounds (x, ctrlY + 12, 72, 22);
-    btnBypass .setBounds (x, ctrlY + 40, 72, 22);
+    // ── Auto EQ + Bypass (stacked, vertically centered) ──────────────────
+    // Two 22px buttons + 10px gap = 54px total  →  top = (90-54)/2 = 18
+    btnEnabled.setBounds (x, ctrlY + 18, 72, 22);
+    btnBypass .setBounds (x, ctrlY + 50, 72, 22);
     x += 80;
 
-    // Colour pickers — 3 small squares stacked, each 20×20
-    const int sq = 20;
-    btnColLive  .setBounds (x, ctrlY + 8,  sq, sq);
-    btnColTarget.setBounds (x, ctrlY + 34, sq, sq);
-    btnColDiff  .setBounds (x, ctrlY + 60, sq, sq);
-    x += sq + 8;
+    // ── Curve name label (centered) + "..." button just after ────────────
+    const int curveNameW = 120;
+    lblCurveName.setBounds (x, ctrlY + (CTRL_H - 16) / 2, curveNameW, 16);
+    btnCurveMenu.setBounds (x + curveNameW + 4, ctrlY + (CTRL_H - 22) / 2, 28, 22);
+    x += curveNameW + 4 + 28 + 8;
 
-    // Curve name label + ▼ dropdown button
-    btnCurveMenu.setBounds (x + 120, ctrlY + 22, 22, 22);
-    lblCurveName.setBounds (x, ctrlY + 8, 142, 16);
-    x += 150;
-
-    btnFreeze.setBounds (x, ctrlY + 12, 76, 22);
-    btnReset .setBounds (x, ctrlY + 40, 76, 22);
+    // ── Freeze + Reset + Edit Bands (three stacked, vertically centered) ──
+    // Three 22px buttons + 2×8px gaps = 76px total  →  top = (90-76)/2 = 7
+    btnFreeze   .setBounds (x, ctrlY + 7,  76, 22);
+    btnReset    .setBounds (x, ctrlY + 37, 76, 22);
+    btnEditBands.setBounds (x, ctrlY + 67, 76, 22);
     x += 84;
 
-    btnDisplayMode.setBounds (x, ctrlY + 10, 76, 22);
-    cmbBarRes     .setBounds (x, ctrlY + 34, 76, 20);
-    btnEditBands  .setBounds (x, ctrlY + 58, 76, 22);
+    // ── Display mode + bar resolution (stacked, vertically centered) ──────
+    // 22px button + 8px gap + 20px combo = 50px total  →  top = (90-50)/2 = 20
+    btnDisplayMode.setBounds (x, ctrlY + 20, 76, 22);
+    cmbBarRes     .setBounds (x, ctrlY + 50, 76, 20);
     x += 84;
 
-    lblStatus.setBounds (x, ctrlY + 8, w - x - 8, 22);
+    // ── Status label (fills remaining space, stops before colour pickers) ─
+    // Colour section: 3×20px squares + 2×10px gaps = 80px + 10px right margin = 90px
+    const int colSecW = 90;
+    lblStatus.setBounds (x, ctrlY + (CTRL_H - 22) / 2, w - x - colSecW, 22);
+
+    // ── Colour pickers — bottom right, horizontal, with labels beneath ────
+    const int sq      = 20;
+    const int sqGap   = 10;
+    const int lblH    = 12;
+    const int colX    = w - 10 - (3 * sq + 2 * sqGap);   // 80px section, 10px margin
+    const int sqY     = ctrlY + (CTRL_H - sq - 4 - lblH) / 2;
+    const int colLblY = sqY + sq + 4;
+    const int lblW    = 50;  // wide enough to center text; centered under square
+
+    btnColTarget.setBounds (colX,                   sqY, sq, sq);
+    lblColTarget.setBounds (colX - (lblW - sq) / 2, colLblY, lblW, lblH);
+
+    btnColLive  .setBounds (colX + sq + sqGap,                   sqY, sq, sq);
+    lblColLive  .setBounds (colX + sq + sqGap - (lblW - sq) / 2, colLblY, lblW, lblH);
+
+    btnColDiff  .setBounds (colX + 2 * (sq + sqGap),                   sqY, sq, sq);
+    lblColDiff  .setBounds (colX + 2 * (sq + sqGap) - (lblW - sq) / 2, colLblY, lblW, lblH);
 }
 
 // ── Paint ─────────────────────────────────────────────────────────────────
