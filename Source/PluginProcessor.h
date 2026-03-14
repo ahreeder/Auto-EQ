@@ -59,9 +59,12 @@ public:
     void updateBand (int idx, const BandParams& p);
 
     // Load / manage target curve (call from message thread)
-    bool         loadTargetCurve   (const juce::File& file);
-    void         clearTargetCurve  ();
-    juce::File   getLastCurveFile  () const { return lastCurveFile; }
+    bool         loadTargetCurve      (const juce::File& file);
+    void         setTargetCurvePoints (const std::vector<float>& freqs,
+                                       const std::vector<float>& db,
+                                       const juce::String& name = "edited");
+    void         clearTargetCurve     ();
+    juce::File   getLastCurveFile     () const { return lastCurveFile; }
 
 private:
     void timerCallback() override;

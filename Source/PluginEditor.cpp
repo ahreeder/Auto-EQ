@@ -31,6 +31,7 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
         juce::PopupMenu menu;
         menu.addItem (1, "Load Curve");
         menu.addItem (2, "Save Curve");
+        menu.addItem (5, "Edit Curve...", processor.targetCurve.isLoaded());
         menu.addSeparator();
         menu.addItem (3, "Clear Curve");
         menu.addItem (4, "Delete Curve");
@@ -44,6 +45,7 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
                     case 2: saveCurveClicked();   break;
                     case 3: clearCurveClicked();  break;
                     case 4: deleteCurveClicked(); break;
+                    case 5: openCurveEditor();    break;
                     default: break;
                 }
             });
@@ -197,6 +199,7 @@ PaAutoEQEditor::PaAutoEQEditor (PaAutoEQProcessor& p)
 PaAutoEQEditor::~PaAutoEQEditor()
 {
     stopTimer();
+    curveEditorWindow.reset();
     bandEditorWindow.reset();
 }
 
@@ -548,4 +551,37 @@ void PaAutoEQEditor::openBandEditor()
     {
         bandEditorWindow->toFront (true);
     }
+}
+
+void PaAutoEQEditor::openCurveEditor()
+{
+    if (!processor.targetCurve.isLoaded())
+        return;
+
+    // Build the 200-pt interpolated copy to hand to the editor
+    float freqs[FFTAnalyzer::N_POINTS];
+    float liveDb[FFTAnalyzer::N_POINTS];
+    processor.fftAnalyzer.getSpectrum (freqs, liveDb);    // just to get the freq grid
+
+    float targetDb[FFTAnalyzer::N_POINTS];
+    processor.targetCurve.interpolateTo (freqs, targetDb, FFTAnalyzer::N_POINTS);
+
+    const std::vector<float> fVec (freqs,    freqs    + FFTAnalyzer::N_POINTS);
+    const std::vector<float> dVec (targetDb, targetDb + FFTAnalyzer::N_POINTS);
+
+    if (curveEditorWindow == nullptr)
+        curveEditorWindow = std::make_unique<CurveEditorWindow> (this);
+    else if (!curveEditorWindow->isVisible())
+        curveEditorWindow->setVisible (true);
+    else
+        curveEditorWindow->toFront (true);
+
+    curveEditorWindow->getPanel()->loadCurve (fVec, dVec);
+
+    curveEditorWindow->getPanel()->onApply = [this] (const std::vector<float>& f,
+                                                      const std::vector<float>& d)
+    {
+        processor.setTargetCurvePoints (f, d, processor.targetCurve.getName() + " (edited)");
+        curveEditorWindow->setVisible (false);
+    };
 }

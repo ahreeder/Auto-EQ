@@ -4,6 +4,7 @@
 #include "PluginProcessor.h"
 #include "SpectrumDisplay.h"
 #include "BandEditorPanel.h"
+#include "CurveEditorWindow.h"
 
 class BandEditorWindow : public juce::DocumentWindow
 {
@@ -60,12 +61,14 @@ private:
     void resetClicked();
     void toggleDisplayMode();
     void openBandEditor();
+    void openCurveEditor();
     void showColourPicker (int target, juce::Button& source);
 
     PaAutoEQProcessor& processor;
 
     SpectrumDisplay spectrumDisplay;
-    std::unique_ptr<BandEditorWindow> bandEditorWindow;
+    std::unique_ptr<BandEditorWindow>  bandEditorWindow;
+    std::unique_ptr<CurveEditorWindow> curveEditorWindow;
 
     // Controls
     juce::ToggleButton btnEnabled     { "Auto EQ" };

@@ -159,6 +159,14 @@ bool PaAutoEQProcessor::loadTargetCurve (const juce::File& file)
     return false;
 }
 
+void PaAutoEQProcessor::setTargetCurvePoints (const std::vector<float>& freqs,
+                                               const std::vector<float>& db,
+                                               const juce::String& name)
+{
+    targetCurve.setPoints (freqs, db, name);
+    // lastCurveFile intentionally left as-is so Save still works
+}
+
 void PaAutoEQProcessor::clearTargetCurve()
 {
     targetCurve.clear();

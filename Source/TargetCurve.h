@@ -10,6 +10,8 @@ class TargetCurve
 {
 public:
     bool loadFromFile (const juce::File& file);
+    void setPoints   (const std::vector<float>& freqs, const std::vector<float>& db,
+                      const juce::String& curveName = "edited");
     void clear() { points.clear(); name = {}; }
 
     bool         isLoaded()   const { return !points.empty(); }

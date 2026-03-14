@@ -94,6 +94,22 @@ bool TargetCurve::loadFromFile (const juce::File& file)
     return true;
 }
 
+void TargetCurve::setPoints (const std::vector<float>& freqs,
+                              const std::vector<float>& db,
+                              const juce::String& curveName)
+{
+    jassert (freqs.size() == db.size());
+    points.clear();
+    points.reserve (freqs.size());
+    for (size_t i = 0; i < freqs.size(); ++i)
+        points.push_back ({ freqs[i], db[i] });
+
+    std::sort (points.begin(), points.end(),
+               [] (const CurvePoint& a, const CurvePoint& b) { return a.freq < b.freq; });
+
+    name = curveName;
+}
+
 float TargetCurve::getDbAtFreq (float freq) const
 {
     if (points.empty())
